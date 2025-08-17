@@ -398,6 +398,12 @@ header h1 {
 .message-content p {
     margin: 0.5rem 0;
     line-height: 1.6;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+}
+
+.message-content br {
+    display: block;
+    margin: 0.25rem 0;
 }
 
 .message-content ul,
