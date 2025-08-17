@@ -3,6 +3,10 @@ import sys
 import os
 from unittest.mock import Mock, MagicMock, patch
 from typing import List, Dict, Any
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+import tempfile
+import shutil
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -181,3 +185,131 @@ def mock_rag_system(mock_config):
         rag._mock_tool_manager = mock_tool_manager
         
         return rag
+
+@pytest.fixture
+def test_app():
+    """Create a test FastAPI app without static file mounting issues"""
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional, Union, Dict, Any
+    from unittest.mock import Mock
+    
+    # Create test app
+    app = FastAPI(title="Test Course Materials RAG System")
+    
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Create mock RAG system for testing
+    mock_rag_system = Mock()
+    
+    # Pydantic models
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[Union[str, Dict[str, Any]]]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+    
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        """Test endpoint for query processing"""
+        try:
+            # Mock response from RAG system
+            session_id = request.session_id or "test-session-123"
+            answer, sources = mock_rag_system.query(request.query, session_id)
+            
+            return QueryResponse(
+                answer=answer,
+                sources=sources,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        """Test endpoint for course statistics"""
+        try:
+            analytics = mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/")
+    async def root():
+        """Test root endpoint"""
+        return {"message": "RAG System API Test"}
+    
+    # Store mock for test access
+    app.state.mock_rag_system = mock_rag_system
+    
+    return app
+
+@pytest.fixture
+def test_client(test_app):
+    """Create a test client for the FastAPI app"""
+    return TestClient(test_app)
+
+@pytest.fixture
+def temp_chroma_db():
+    """Create a temporary ChromaDB directory for testing"""
+    temp_dir = tempfile.mkdtemp(prefix="test_chroma_")
+    yield temp_dir
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+@pytest.fixture
+def mock_anthropic_response():
+    """Create a complete mock response for Anthropic API"""
+    mock_response = Mock()
+    mock_response.stop_reason = "end_turn"
+    mock_response.content = [Mock(text="This is a test response from Claude.", type="text")]
+    mock_response.usage = Mock(input_tokens=100, output_tokens=50)
+    return mock_response
+
+@pytest.fixture
+def api_test_data():
+    """Common test data for API endpoints"""
+    return {
+        "valid_query": {
+            "query": "What is computer use in AI?",
+            "session_id": "test-session-123"
+        },
+        "valid_query_no_session": {
+            "query": "Tell me about Anthropic's AI safety work"
+        },
+        "empty_query": {
+            "query": ""
+        },
+        "mock_query_response": (
+            "Computer use refers to AI systems' ability to interact with computer interfaces.",
+            [
+                {"course_title": "Building Towards Computer Use", "lesson_number": 1},
+                {"course_title": "AI Safety Course", "lesson_number": 2}
+            ]
+        ),
+        "mock_analytics": {
+            "total_courses": 3,
+            "course_titles": [
+                "Building Towards Computer Use with Anthropic",
+                "AI Safety and Alignment",
+                "Advanced Machine Learning"
+            ]
+        }
+    }
