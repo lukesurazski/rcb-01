@@ -34,8 +34,11 @@ class SearchResults:
 class VectorStore:
     """Vector storage using ChromaDB for course content and metadata"""
     
-    def __init__(self, chroma_path: str, embedding_model: str, max_results: int = 5):
+    def __init__(self, chroma_path: str, embedding_model: str, max_results: int = 5, 
+                 course_threshold: float = 0.5, content_threshold: float = 0.7):
         self.max_results = max_results
+        self.course_name_threshold = course_threshold
+        self.content_relevance_threshold = content_threshold
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(
             path=chroma_path,
@@ -95,7 +98,28 @@ class VectorStore:
                 n_results=search_limit,
                 where=filter_dict
             )
-            return SearchResults.from_chroma(results)
+            
+            search_results = SearchResults.from_chroma(results)
+            
+            # Filter results by relevance threshold
+            filtered_docs = []
+            filtered_metadata = []
+            filtered_distances = []
+            
+            for doc, meta, dist in zip(search_results.documents, 
+                                      search_results.metadata, 
+                                      search_results.distances):
+                if dist < self.content_relevance_threshold:
+                    filtered_docs.append(doc)
+                    filtered_metadata.append(meta)
+                    filtered_distances.append(dist)
+            
+            return SearchResults(
+                documents=filtered_docs,
+                metadata=filtered_metadata, 
+                distances=filtered_distances
+            )
+            
         except Exception as e:
             return SearchResults.empty(f"Search error: {str(e)}")
     
@@ -107,7 +131,8 @@ class VectorStore:
                 n_results=1
             )
             
-            if results['documents'][0] and results['metadatas'][0]:
+            if (results['documents'][0] and results['metadatas'][0] and 
+                results['distances'][0] and results['distances'][0][0] < self.course_name_threshold):
                 # Return the title (which is now the ID)
                 return results['metadatas'][0][0]['title']
         except Exception as e:
@@ -264,4 +289,36 @@ class VectorStore:
             return None
         except Exception as e:
             print(f"Error getting lesson link: {e}")
+    
+    def get_course_outline(self, course_name: str) -> Optional[Dict[str, Any]]:
+        """Get complete course outline including title, link, and all lessons"""
+        import json
+        
+        # First resolve the course name to get exact title
+        course_title = self._resolve_course_name(course_name)
+        if not course_title:
+            return None
+        
+        try:
+            # Get course by exact title (which is the ID)
+            results = self.course_catalog.get(ids=[course_title])
+            if results and 'metadatas' in results and results['metadatas']:
+                metadata = results['metadatas'][0]
+                
+                # Parse lessons from JSON
+                lessons = []
+                lessons_json = metadata.get('lessons_json')
+                if lessons_json:
+                    lessons = json.loads(lessons_json)
+                
+                return {
+                    "course_title": course_title,
+                    "course_link": metadata.get('course_link'),
+                    "instructor": metadata.get('instructor'),
+                    "lessons": lessons
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting course outline: {e}")
+            return None
     

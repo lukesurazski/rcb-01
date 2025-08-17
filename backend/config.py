@@ -21,6 +21,10 @@ class Config:
     MAX_RESULTS: int = 5         # Maximum search results to return
     MAX_HISTORY: int = 2         # Number of conversation messages to remember
     
+    # Search relevance thresholds (cosine distances - lower is better)
+    COURSE_NAME_SIMILARITY_THRESHOLD: float = 1.6  # For course name resolution
+    CONTENT_RELEVANCE_THRESHOLD: float = 1.8      # For content search filtering
+    
     # Database paths
     CHROMA_PATH: str = "./chroma_db"  # ChromaDB storage location
 
