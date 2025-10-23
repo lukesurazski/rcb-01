@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Frontend to Backend API Request Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .diagram-section {
+            margin: 40px 0;
+            padding: 30px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .diagram-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .detail-box {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #10b981;
+        }
+
+        .detail-box h4 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .detail-box code {
+            display: block;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .request-box {
+            border-left-color: #3b82f6;
+        }
+
+        .response-box {
+            border-left-color: #ef4444;
+        }
+
+        .processing-box {
+            border-left-color: #8b5cf6;
+        }
+
+        .note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .note strong {
+            color: #92400e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        table th {
+            background: #f0f0f0;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        table code {
+            background: transparent;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .flow-step {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .flow-step::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Detailed Frontend to Backend API Request Flow</h1>
+        <p class="subtitle">Complete breakdown of HTTP communication, request/response structure, and server processing</p>
+
+        <!-- Basic Flow Diagram -->
+        <div class="diagram-section">
+            <h2>1. Complete Request-Response Cycle</h2>
+            <div class="mermaid">
+                graph TD
+                    A["👤 User<br/>Browser"] -->|1. User Action| B["🖥️ Frontend<br/>JavaScript<br/>Event Handler"]
+                    B -->|2. Fetch/AJAX<br/>Prepare Request| C["📤 HTTP Request<br/>POST /api/query<br/>Headers + Body"]
+                    C -->|Network| D["⚙️ Backend<br/>API Server<br/>Receive Request"]
+                    D -->|3. Parse & Validate| E["🔍 Middleware<br/>Auth, CORS<br/>Content-Type"]
+                    E -->|4. Route & Execute| F["🎯 Controller<br/>Business Logic<br/>Processing"]
+                    F -->|5. Query/Update| G["💾 Database<br/>ChromaDB<br/>Vector Store"]
+                    G -->|Return Data| F
+                    F -->|6. Build Response| H["📥 HTTP Response<br/>Status + Headers<br/>+ JSON Body"]
+                    H -->|Network| I["📡 Frontend<br/>Receives Response<br/>Status & Data"]
+                    I -->|7. Parse JSON| J["🎨 Update DOM<br/>Re-render UI<br/>Display Results"]
+            </div>
+        </div>
+
+        <!-- HTTP Request Details -->
+        <div class="diagram-section">
+            <h2>2. HTTP Request Structure</h2>
+            <div class="details-grid">
+                <div class="detail-box request-box">
+                    <h4>Request Line & Headers</h4>
+                    <code>POST /api/query HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+Authorization: Bearer token123
+Content-Length: 156
+Accept: application/json
+User-Agent: Mozilla/5.0
+Origin: http://localhost:3000</code>
+                </div>
+
+                <div class="detail-box request-box">
+                    <h4>Request Body (JSON)</h4>
+                    <code>{
+  "query": "What is MCP?",
+  "session_id": "sess_12345",
+  "conversation_history": [
+    {
+      "role": "user",
+      "content": "Previous question"
+    }
+  ]
+}</code>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>HTTP Method</th>
+                        <th>Purpose</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td>Retrieve data (no body)</td>
+                        <td>GET /api/courses</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td>Create/Submit data (with body)</td>
+                        <td>POST /api/query</td>
+                    </tr>
+                    <tr>
+                        <td><code>PUT/PATCH</code></td>
+                        <td>Update existing data</td>
+                        <td>PUT /api/users/123</td>
+                    </tr>
+                    <tr>
+                        <td><code>DELETE</code></td>
+                        <td>Remove data</td>
+                        <td>DELETE /api/courses/5</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Backend Processing -->
+        <div class="diagram-section">
+            <h2>3. Backend Processing Pipeline</h2>
+            <div class="detail-box processing-box">
+                <h4>Server-side Request Handling</h4>
+                <div class="flow-step"><strong>Receive Request:</strong> FastAPI server listens on port 8000</div>
+                <div class="flow-step"><strong>Parse Headers:</strong> Extract Content-Type, Authorization, etc.</div>
+                <div class="flow-step"><strong>Middleware Processing:</strong> CORS validation, authentication checks</div>
+                <div class="flow-step"><strong>Route Matching:</strong> Find correct endpoint handler (e.g., POST /api/query)</div>
+                <div class="flow-step"><strong>Parameter Validation:</strong> Validate request body matches Pydantic models</div>
+                <div class="flow-step"><strong>Business Logic:</strong> Execute RAG system query, call Claude API</div>
+                <div class="flow-step"><strong>Database Query:</strong> Search ChromaDB vector store with embedding</div>
+                <div class="flow-step"><strong>Generate Response:</strong> Format answer + metadata + sources</div>
+                <div class="flow-step"><strong>Send Response:</strong> Return HTTP response with status code</div>
+            </div>
+        </div>
+
+        <!-- HTTP Response Details -->
+        <div class="diagram-section">
+            <h2>4. HTTP Response Structure</h2>
+            <div class="details-grid">
+                <div class="detail-box response-box">
+                    <h4>Response Headers & Status</h4>
+                    <code>HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 512
+Cache-Control: no-cache
+Set-Cookie: session_id=sess_12345
+Access-Control-Allow-Origin: *
+Date: Wed, 22 Oct 2024...</code>
+                </div>
+
+                <div class="detail-box response-box">
+                    <h4>Response Body (JSON)</h4>
+                    <code>{
+  "answer": "MCP is Model Context Protocol...",
+  "sources": [
+    {
+      "course": "MCP Server Dev",
+      "lesson": "Introduction",
+      "content": "..."
+    }
+  ],
+  "conversation_id": "conv_789",
+  "status": "success"
+}</code>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status Code</th>
+                        <th>Meaning</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>200 OK</code></td>
+                        <td>Request succeeded</td>
+                        <td>Query processed successfully</td>
+                    </tr>
+                    <tr>
+                        <td><code>201 Created</code></td>
+                        <td>Resource created</td>
+                        <td>New course added</td>
+                    </tr>
+                    <tr>
+                        <td><code>400 Bad Request</code></td>
+                        <td>Invalid request data</td>
+                        <td>Missing required field</td>
+                    </tr>
+                    <tr>
+                        <td><code>401 Unauthorized</code></td>
+                        <td>Authentication required</td>
+                        <td>Invalid/missing API key</td>
+                    </tr>
+                    <tr>
+                        <td><code>404 Not Found</code></td>
+                        <td>Resource doesn't exist</td>
+                        <td>Course not found</td>
+                    </tr>
+                    <tr>
+                        <td><code>500 Server Error</code></td>
+                        <td>Server error occurred</td>
+                        <td>Database connection failed</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Frontend Processing -->
+        <div class="diagram-section">
+            <h2>5. Frontend Response Handling</h2>
+            <div class="detail-box">
+                <h4>JavaScript Processing</h4>
+                <code>fetch('/api/query', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ query: userInput })
+})
+.then(response => {
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+})
+.then(data => {
+  // Update UI with answer
+  document.getElementById('answer').textContent = data.answer;
+  // Display sources
+  renderSources(data.sources);
+})
+.catch(error => console.error('API Error:', error));</code>
+            </div>
+        </div>
+
+        <!-- Key Concepts -->
+        <div class="diagram-section">
+            <h2>6. Key Concepts & Details</h2>
+            <div class="details-grid">
+                <div class="detail-box">
+                    <h4>CORS (Cross-Origin Resource Sharing)</h4>
+                    <p>Allows frontend (different origin/port) to access backend API</p>
+                    <code>Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST
+Access-Control-Allow-Headers: Content-Type</code>
+                </div>
+
+                <div class="detail-box">
+                    <h4>Authentication & Authorization</h4>
+                    <p>Validates user identity and permissions</p>
+                    <code>Authorization: Bearer eyJhbGc...
+X-API-Key: sk_live_123456789
+Session-ID: sess_12345</code>
+                </div>
+
+                <div class="detail-box">
+                    <h4>Content Negotiation</h4>
+                    <p>Client/server agree on data format</p>
+                    <code>Content-Type: application/json
+Accept: application/json
+Accept-Encoding: gzip, deflate</code>
+                </div>
+
+                <div class="detail-box">
+                    <h4>Data Validation</h4>
+                    <p>Server validates request before processing</p>
+                    <code>- Check required fields exist
+- Validate data types
+- Check length constraints
+- Verify business rules</code>
+                </div>
+            </div>
+
+            <div class="note">
+                <strong>⚠️ Important Details:</strong>
+                <ul>
+                    <li>Status codes tell you if request succeeded (2xx), had client issues (4xx), or server issues (5xx)</li>
+                    <li>Headers provide metadata about request/response (auth, content-type, caching)</li>
+                    <li>Request body contains the actual data being sent (usually JSON)</li>
+                    <li>Response body contains the answer/result from the server</li>
+                    <li>Middleware runs before/after controller logic for cross-cutting concerns</li>
+                    <li>Error handling should gracefully report issues back to frontend</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Real-world Example -->
+        <div class="diagram-section">
+            <h2>7. Real-world Example (RAG Chatbot)</h2>
+            <div class="detail-box">
+                <h4>Step-by-Step with This Project</h4>
+                <div class="flow-step"><strong>User enters query:</strong> "What is RAG?" in the chat interface (index.html)</div>
+                <div class="flow-step"><strong>Frontend makes request:</strong> POST /api/query with body: {query: "What is RAG?"}</div>
+                <div class="flow-step"><strong>Backend receives:</strong> FastAPI route handler in app.py</div>
+                <div class="flow-step"><strong>Validation:</strong> Pydantic model validates query string exists and is not empty</div>
+                <div class="flow-step"><strong>Processing:</strong> RAGSystem.query() orchestrates the flow</div>
+                <div class="flow-step"><strong>Search:</strong> VectorStore searches ChromaDB for relevant course content</div>
+                <div class="flow-step"><strong>AI Generation:</strong> Claude API generates answer using search results</div>
+                <div class="flow-step"><strong>Response:</strong> Returns 200 OK with {answer, sources, conversation_id}</div>
+                <div class="flow-step"><strong>Frontend display:</strong> JavaScript updates DOM with answer and source links</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        mermaid.contentLoaded();
+    </script>
+</body>
+</html>
