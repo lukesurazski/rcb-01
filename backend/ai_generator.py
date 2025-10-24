@@ -104,8 +104,12 @@ Provide only the direct answer to what was asked, synthesized from all tool resu
             api_params["tool_choice"] = {"type": "auto"}
         
         # Get response from Claude
-        response = self.client.messages.create(**api_params)
-        
+        try:
+            response = self.client.messages.create(**api_params)
+        except Exception as e:
+            # Re-raise API errors with more context
+            raise Exception(f"Anthropic API error: {type(e).__name__}: {str(e)}")
+
         # Handle tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
             if enable_sequential_tools:
@@ -116,8 +120,14 @@ Provide only the direct answer to what was asked, synthesized from all tool resu
                     return self._handle_tool_execution(response, api_params, tool_manager)
             else:
                 return self._handle_tool_execution(response, api_params, tool_manager)
-        
-        # Return direct response
+
+        # Return direct response - handle empty content gracefully
+        if not response.content or len(response.content) == 0:
+            raise Exception(f"Empty response from Claude API (stop_reason: {response.stop_reason})")
+
+        if not hasattr(response.content[0], 'text'):
+            raise Exception(f"Unexpected content type in response: {type(response.content[0])}")
+
         return response.content[0].text
     
     def _handle_sequential_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager, max_rounds: int = 2):
@@ -170,9 +180,15 @@ Provide only the direct answer to what was asked, synthesized from all tool resu
                 except Exception as e:
                     return f"API error during sequential execution: {str(e)}"
             
-            # Return final response content
-            return current_response.content[0].text if current_response.content else "No response generated"
-            
+            # Return final response content with safety checks
+            if not current_response.content or len(current_response.content) == 0:
+                return "No response generated from Claude API"
+
+            if not hasattr(current_response.content[0], 'text'):
+                return f"Unexpected response format from Claude API"
+
+            return current_response.content[0].text
+
         except Exception as e:
             # Re-raise to trigger fallback at generate_response level
             raise e
@@ -238,5 +254,16 @@ Provide only the direct answer to what was asked, synthesized from all tool resu
         }
         
         # Get final response
-        final_response = self.client.messages.create(**final_params)
+        try:
+            final_response = self.client.messages.create(**final_params)
+        except Exception as e:
+            raise Exception(f"Anthropic API error in tool execution: {type(e).__name__}: {str(e)}")
+
+        # Handle response with safety checks
+        if not final_response.content or len(final_response.content) == 0:
+            return "No response generated after tool execution"
+
+        if not hasattr(final_response.content[0], 'text'):
+            return f"Unexpected response format after tool execution"
+
         return final_response.content[0].text

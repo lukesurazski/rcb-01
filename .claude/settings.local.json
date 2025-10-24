@@ -8,7 +8,11 @@
       "Bash(uv run pytest:*)",
       "Bash(uv run:*)",
       "Bash(python:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git worktree:*)",
+      "Bash(git merge:*)",
+      "Bash(git commit:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

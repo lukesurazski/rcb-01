@@ -17,13 +17,56 @@ cd backend && uv run uvicorn app:app --reload --port 8000
 - Python 3.13+ with `uv` package manager
 - `.env` file in root with `ANTHROPIC_API_KEY=your_key_here`
 - Application runs on http://localhost:8000
+- Dependencies in root `pyproject.toml` (NOT backend/pyproject.toml)
+
+### Testing
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest backend/tests/test_rag_system.py
+
+# Run single test
+uv run pytest backend/tests/test_rag_system.py::TestRAGSystem::test_query_basic_flow
+
+# Run by marker
+uv run pytest -m unit        # Unit tests only
+uv run pytest -m integration # Integration tests only
+uv run pytest -m api         # API endpoint tests only
+
+# Verbose output with print statements
+uv run pytest -v -s
+```
 
 ### Dependencies
-- Dependencies managed via `pyproject.toml` and `uv.lock`
+- Dependencies managed via root `pyproject.toml` and `uv.lock`
 - Install: `uv sync`
 - Key dependencies: FastAPI, ChromaDB, Anthropic SDK, Sentence Transformers
+- Test dependencies: pytest, pytest-mock, pytest-asyncio, httpx
 
 ## Architecture Overview
+
+### Project Structure
+```
+├── pyproject.toml           # Root dependencies (use this, not backend/pyproject.toml)
+├── backend/                 # Python backend (all .py files here)
+│   ├── app.py              # FastAPI application entry point
+│   ├── rag_system.py       # Main RAG orchestrator
+│   ├── vector_store.py     # ChromaDB dual-collection storage
+│   ├── search_tools.py     # Claude tool definitions
+│   ├── ai_generator.py     # Claude API integration
+│   ├── document_processor.py
+│   ├── session_manager.py
+│   ├── models.py           # Pydantic data models
+│   ├── config.py           # Configuration settings
+│   └── tests/              # Test suite (70+ tests)
+├── frontend/               # Static HTML/CSS/JS served by FastAPI
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+└── docs/                   # Course documents (auto-loaded on startup)
+```
 
 ### Core RAG System Flow
 The system follows a 5-component RAG architecture orchestrated by `rag_system.py`:
@@ -39,6 +82,8 @@ The system follows a 5-component RAG architecture orchestrated by `rag_system.py
 Course Documents → DocumentProcessor → VectorStore (2 collections)
                                    ↓
 User Query → RAGSystem → SearchTool → VectorStore.search() → AI Generation → Response
+             ↓
+        FastAPI app.py → Frontend (index.html)
 ```
 
 ### Critical Architecture Details
@@ -78,29 +123,51 @@ Lesson Y: [lesson title]
 
 ### Component Interactions
 
-**RAGSystem orchestrates**:
+**RAGSystem orchestrates** (`rag_system.py`):
 - Document ingestion via `add_course_folder()` - processes `/docs` on startup
 - Query processing via `query()` - coordinates search tools + AI generation
 - Prevents duplicate course loading by checking existing titles
+- Returns (answer, sources) tuple for API responses
 
-**VectorStore provides**:
+**VectorStore provides** (`vector_store.py`):
 - `search()` - unified interface with course name resolution
 - `add_course_metadata()` / `add_course_content()` - dual collection storage
 - Course analytics and metadata retrieval
+- Handles fuzzy course name matching via semantic search
 
-**AI Generator handles**:
-- Tool execution workflow with Claude
+**AI Generator handles** (`ai_generator.py`):
+- Tool execution workflow with Claude API
 - System prompt emphasizes search tool usage for course queries
 - Response generation with conversation history context
+- Iterative tool-use loop until final text response
+
+**FastAPI Application** (`app.py`):
+- POST `/api/query` - Main query endpoint, returns answer + sources
+- GET `/api/courses` - Course statistics endpoint
+- Serves static frontend from `/frontend` directory at root `/`
+- CORS enabled for development
 
 ## Important Implementation Notes
 
-- Course titles are used as unique IDs across all components
-- Chunk content includes course/lesson context prefixes for better retrieval
-- Tool manager tracks search sources for frontend source display
-- Session manager limits history to prevent context overflow
-- FastAPI serves both API endpoints and static frontend files
-- CORS configured for development with wildcard origins
-- always use uv to run the server do not use pip directly
+### Core Conventions
+- **Course titles are unique IDs** across all components (metadata, chunks, search)
+- **Chunk content includes prefixes** with course/lesson context for better retrieval
+- **Always use `uv`** for all Python operations (never `pip` or direct `python`)
+  - Run server: `uv run uvicorn app:app`
+  - Run tests: `uv run pytest`
+  - Execute scripts: `uv run python script.py`
+
+### Data Flow Details
+- `ToolManager` (`search_tools.py`) tracks search sources for frontend display
+- `SessionManager` limits history to prevent context overflow (configurable in `config.py`)
+- Document processor expects specific format in `/docs` folder (see Document Structure above)
+- ChromaDB persists to `./backend/chroma_db/` directory
+- Embedding model downloads on first run (~400MB for sentence-transformers)
+
+### Testing Architecture
+- `conftest.py` provides comprehensive fixtures for all components
+- Mocks available for: VectorStore, Anthropic client, RAG system, tool responses
+- Tests organized by markers: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.api`
+- API tests use FastAPI TestClient (no server startup needed)
+- always use uv to run the server.  do not use pip directly.
 - make sure to use uv to manage all dependencies
-- use uv to run python files
